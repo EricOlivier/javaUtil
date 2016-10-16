@@ -17,6 +17,8 @@ import java.io.InputStream;
  * 读取mybatis-config.xml配置信息,其中的 <dataSource>标签中选择JDBCPoolDataSourceFactory
  * mybatis-config.xml中也读取配置文件db.properties中关于sql的url, password等信息
  *
+ *@getSqlSession()  获得一个SqlSession实例, 在用完后要使用sqlSession.close()关闭,不然一旦连接池里的实例用完了就会获取失败
+ *
  */
 
 public class MyBatisUtil {
