@@ -11,6 +11,9 @@ import java.io.InputStreamReader;
 
 /**
  * Created by SCY on 16/10/19.
+ *
+ * 需要和ExceptionAndError中的自定义的myException和ErrorCode一起用
+ * 也可以替换成jdk自带的
  */
 
 public class HttpHelper {
