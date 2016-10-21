@@ -1,7 +1,7 @@
 package util;
 
 import ExceptionAndError.ErrorCode;
-import ExceptionAndError.myException;
+import ExceptionAndError.MyException;
 import org.apache.log4j.Logger;
 
 import javax.servlet.http.HttpServletResponse;
@@ -139,7 +139,7 @@ public class HttpHelper {
             return sb.toString();
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
-            throw new myException(ErrorCode.WrongParameters, "Cannot get the POST Body");
+            throw new MyException(ErrorCode.WrongParameters, "Cannot get the POST Body");
         }
     }
 
