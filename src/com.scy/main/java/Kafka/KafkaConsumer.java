@@ -23,7 +23,7 @@ import kafka.consumer.ConsumerIterator;
  * Created by SCY on 16/8/9.
  *
  * 当你不需要立即获得结果, 但并发量又不能无限大时,差不多就是你需要使用消息队列的时候,蛤蛤蛤!
- *
+ * 需要的Maven依赖在txt中
  *
  * kafka消费端
  * 可以重写自己需要的consume操作(这里因为业务需求,我把consume的参数接口化了), 但是这里的一个KafkaConsumer的是一个实例,暂时只能对应一个consume操作,consume实际是去操作ConsumerIterator, 所以
@@ -79,6 +79,12 @@ public class KafkaConsumer {
 
         consumerConfig = new kafka.consumer.ConsumerConfig(props);
         kafkaConnector = Consumer.createJavaConsumerConnector(consumerConfig);
+
+        //topicMap的key是topic的名字, Integer是告诉Connector你的consumer可以提供多少个stream来
+        //接受这个topic送来的消息, 如果一个叫"scy"的topic有10个partition, 那么给一个"scy": 2 的K-V,
+        //就能产生两个stream,每个stream接受5个partition来的消息, 所以如果这里给的num大于partition的数量
+        //有一个流就是空着的, 同时注意,任何一个流block住了,那这个流对应的partition往consumer塞信息的动作也被block了
+        //相应的解答http://stackoverflow.com/questions/23590808/apache-kafka-kafkastream-on-topic-partition
         Map<String,Integer>topicMap = new HashMap<String,Integer>();
         topicMap.put(topic,1);
 
