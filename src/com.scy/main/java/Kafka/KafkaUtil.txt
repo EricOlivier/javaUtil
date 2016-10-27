@@ -32,3 +32,51 @@
             <artifactId>commons-collections4</artifactId>
             <version>4.1</version>
         </dependency>
+
+
+
+
+
+
+//基础知识相关
+一个topic可以有多个消费者
+一个topic被分成1个或几个partition存储， 1个topic被分成的partitions通过kafka cluster被分配到不同的server（broker）上。反过来，一个server(broker)可以有多个不同topic下的partition
+kafka只保证每个partition内部有序， 不保证一个topic下的partition之间的顺序
+
+针对于每一个partition, 在kafka里都有一个server作为这个partition的leader, 有0个或者多个作为他的follower，leader负责这个partition所有的读和写的requests. 1个server（broker）可以作为某些partition的leader，也可以作为某些partition的follower，所以集群的负载是均衡的
+
+
+一个consumer group下可以有多个consumer，  对于拥有同一个consumer group id的consumer， 当这个consumer group消费一个topic的消息时，这个消息的数据会以均衡的方式分给这个group里的某一个consumer（也就是说，group里只有一个实例会得到这个topic的某一条消息）。   如果多个consumer group消费同一个topic， 每个consumer group都会得到这条消息（因为都有自己的offset)，然后再组内自己分
+
+同一consumer group，组内的分配模式
+The way consumption is implemented in Kafka is by dividing up the partitions in the log over the consumer instances so that each instance is the exclusive consumer of a "fair share" of partitions at any point in time. This process of maintaining membership in the group is handled by the Kafka protocol dynamically. If new instances join the group they will take over some partitions from other members of the group; if an instance dies, its partitions will be distributed to the remaining instances.
+
+
+
+
+
+zookeeper 对于kafka的意义
+First of all, zookeeper is needed only for high level consumer. SimpleConsumer does not require zookeeper to work.
+The main reason zookeeper is needed for a high level consumer is to track consumed offsets and handle load balancing.
+Now in more detail.
+Regarding offset tracking, imagine following scenario: you start a consumer, consume 100 messages and shut the consumer down. Next time you start your consumer you'll probably want to resume from your last consumed offset (which is 100), and that means you have to store the maximum consumed offset somewhere. Here's where zookeeper kicks in: it stores offsets for every group/topic/partition. So this way next time you start your consumer it may ask "hey zookeeper, what's the offset I should start consuming from?". Kafka is actually moving towards being able to store offsets not only in zookeeper, but in other storages as well (for now only zookeeper and kafka offset storages are available and i'm not sure kafka storage is fully implemented).
+Regarding load balancing, the amount of messages produced can be quite large to be handled by 1 machine and you'll probably want to add computing power at some point. Lets say you have a topic with 100 partitions and to handle this amount of messages you have 10 machines. There are several questions that arise here actually:
+* how should these 10 machines divide partitions between each other?
+* what happens if one of machines die?
+* what happens if you want to add another machine?
+And again, here's where zookeeper kicks in: it tracks all consumers in group and each high level consumer is subscribed for changes in this group. The point is that when a consumer appears or disappears, zookeeper notifies all consumers and triggers rebalance so that they split partitions near-equally (e.g. to balance load). This way it guarantees if one of consumer dies others will continue processing partitions that were owned by this consumer.
+
+总结一下就是， zookeeper存着每个consumer group的对于某一个topic的offset
+zookeeper同时也管理着各个consumer之间，producer之间的rebalance：1. 一个broker挂了或者新加进来，zookeeper通知相关的broker这个信息，然后进行任务的rebalance
+
+
+当kafka进行consumer rebalance的时候，消费会不会block：
+Depends on what you mean by "blocked". If you mean "are existing connections closed when rebalance is triggered" then the answer is yes. The current Kafka's rebalancing algorithm is unfortunately imperfect.
+Here is what is happening during consumer rebalance.
+Assume we have a topic with 10 partitions (0-9), and one consumer (lets name it consumer1) consuming it. When a second consumer appears (consumer2) the rebalance task triggers for both of them (consumer1 gets an event, consumer2 does the initial rebalance). Now consumer1 closes all the existing connections (even those that will be reopened soon) and releases the partition ownership in Zookeeper for all 10 partitions.
+Then it runs the partition assignment algorithm and decides what partitions should be claimed and claims the partition ownership in Zookeeper again. If the claim was successful consumer1 starts fetching his new partitions.
+Meanwhile consumer2 runs the partition assignment algorithm as well and tries to claim his partitions in Zookeeper as well. Claim will succeed only when consumer1 releases the ownership on these partitions. When the claim is successful consumer2 starts fetching, or if it fails to claim partitions within a given amount of retries you get a rebalance failed after n retries exception.
+As you noticed instead of just closing connections and releasing ownership for partitions consumer1 does not own anymore, it unnecessarily closes ALL his connections and restarts with just a lower amount of partitions. The same story with adding partitions (when we consume by a wildcard filter and new topic appears) - ALL connections are closed and then opened again instead of just opening new ones.
+总结一下就是， 这个consumer group下的所有consumer的connections都会断掉block住。
+
+
