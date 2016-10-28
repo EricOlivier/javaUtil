@@ -35,6 +35,8 @@ public class KafkaProducer {
          *  compression.codec: 压缩方法,三个可选值: none,  gzip,   snappy
          *  partitioner.class: 把每个消息分到各个partition的方法, default的方法是根据message的key的hash值
          *
+         *
+         *  采用简单的单例模式,使用的时候直接调用静态方法getInstance获得实例就行,然后send message就好
          */
 
 
