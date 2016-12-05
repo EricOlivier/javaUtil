@@ -53,6 +53,10 @@ The way consumption is implemented in Kafka is by dividing up the partitions in 
 
 
 
+//有的第三方api 也把group id 叫做client id
+//consumer连接的一般都是zookeeper,  producer连接的是kafka broker.list
+
+
 
 
 zookeeper 对于kafka的意义

@@ -1,0 +1,12 @@
+##BaseRichBolt
+
+You must – and are able to – manually ack() an incoming tuple.
+
+Can be used to delay acking a tuple,
+
+e.g. for algorithms that need to work across multiple incoming tuples.
+##BaseBasicBolt
+
+Auto-acks the incoming tuple at the end of its execute() method.
+
+These bolts are typically simple functions or filters.
